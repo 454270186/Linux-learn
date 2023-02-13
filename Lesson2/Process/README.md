@@ -100,3 +100,8 @@ void _exit(int status);
 
 ## 进程回收
 使用wait() and waitpid()
+
+
+## 进程间通信
+
+### 匿名管道
