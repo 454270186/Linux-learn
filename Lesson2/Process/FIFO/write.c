@@ -23,14 +23,13 @@ int main() {
         perror("open");
         exit(0);
     }
-
-    for (int i = 0; i < 1024; i++) {
+    for (int i = 0; i < 100; i++) {
         char buf[1024];
         sprintf(buf, "hello %d", i);
         printf("write: %s\n", buf);
 
-        write(fd, buf, sizeof(buf));
-        sleep(1);
+        write(fd, buf, strlen(buf));
+        
     }
 
     close(fd);
