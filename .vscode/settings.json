@@ -4,6 +4,7 @@
         "stdlib.h": "c",
         "iostream": "cpp",
         "stdio.h": "c",
-        "fcntl.h": "c"
+        "fcntl.h": "c",
+        "stat.h": "c"
     }
 }
