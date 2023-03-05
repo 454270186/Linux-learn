@@ -38,3 +38,43 @@
             -addr：需要释放的首地址
             -length：需要与mmap中的length对应
 */
+
+#include <stdio.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wait.h>
+
+int main() {
+    // 1. 打开一个文件
+    // 2. 创建内存映射区
+
+    int fd = open("test.txt", O_RDWR);
+    int size = lseek(fd, 0, SEEK_END);
+
+    void* ptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    if (ptr == MAP_FAILED) {
+        perror("mmap");
+        exit(0);
+    }
+
+    pid_t pid = fork();
+
+    if (pid > 0) {
+        // parent
+        wait(NULL);
+        char buf[64];
+        strcpy(buf, (char*)ptr); // string copy, 拷贝遇到的第一个空字符的前面的字符串
+        printf("parent read: %s\n", buf);
+
+    } else if (pid == 0) {
+        // child
+        strcpy((char*)ptr, "here is child");
+    }
+
+
+    munmap(ptr, size); // 释放内存映射区
+}
