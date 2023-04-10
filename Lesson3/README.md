@@ -77,5 +77,109 @@
 <br>
 <br>
 
-### TCP状态转换
+### TCP状态转换（假设是客户端主动关闭）
 
+**服务端**
+1. listen状态：服务器调用listen函数并等待客户端连接请求。
+2. syn-received状态：服务器收到客户端的SYN报文并发送SYN+ACK报文作为响应
+3. established状态：服务器收到客户端的ACK报文，连接建立成功
+4. close_wait状态：收到客户端发来的关闭请求，发送确认，等待客户端关闭连接
+5. last_ack状态：关闭连接时，等待客户端最后的确认
+6. closed状态：完成连接关闭过程，等待下一次连接请求
+
+**客户端**
+1. closed状态：客户端未发起连接请求，处于关闭状态。
+2. syn-sent状态：客户端向服务器发送SYN报文，表示建立连接请求。
+3. established状态：服务器发送SYN+ACK报文响应，客户端发送ACK报文，连接建立成功。
+4. fin_wait1状态：发送关闭请求FIN，等待服务端确认ACK
+5. fin_wait2状态：服务端发送关闭请求FIN，等待服务端关闭连接
+6. time_wait状态：等待2MSL（最大报文寿命）后关闭连接
+7. closed状态：完成连接关闭过程，等待下一次连接请求
+
+#### 半关闭
+半关闭是指在一个TCP连接中，其中一个端口发送了FIN包（表示数据发送完成），但是仍然可以接受另一个端口发送的数据。也就是说，在半关闭状态下，一个TCP连接的一端（比如客户端）已经结束了它的数据发送任务，但仍可以接收来自另一端（比如服务端）发送的数据。这种状态可以用于实现一些需要逐步关闭连接的场景，例如在客户端发送完请求后，服务端需要一些时间来处理请求，但是客户端不希望一直等待，而是先关闭发送端口。
+```c++
+// API实现
+#include <sys/socket.h>
+
+int shutdown(int sockfd, int how);
+// 和close()的区别在于：
+// 1. close()是减少套接字的引用计数来中止连接，shutdown()不考虑引用计数，直接关闭连接
+// 2. 多进程中，一个进程调用了shutdown()关闭读写后，其他进程将无法通信；但一个进程调用close()后不会影响其他的进程
+```
+
+### 端口复用
+
+用途：
+- 防止服务器重启时之前绑定的端口还未释放
+- 程序突然退出而系统没有释放端口
+```c++
+#include <sys/types.h>
+#include <sys/socket.h>
+// 设置套接字的属性
+// 可以设置端口复用
+int setsockopt(int sockfd, int level, int optname, const void* optval, socket_len optlen);
+    参数：
+        - sockfd：要操作的socket fd
+        - level：级别 - SOL_SOCKET (端口复用的级别)
+        - optname：选项的名称
+            - SO_REUSEADDR
+            - SO_REUSEPORT
+        - optval: 端口复用的值（整形）
+            - 1：可以复用
+            - 2：不可复用
+        - optlen：optval参数的大小
+```
+设置端口复用要在服务器绑定端口之前
+
+
+### I/O多路复用
+
+#### select
+
+主要思想：
+1. 首先构建一个关于文件描述符的列表，将要监听的文件描述符添加到该列表中
+2. 调用一个系统函数，监听该列表中的文件描述符，直到这些描述符中一个或多个进行I/O操作时，该函数才返回
+    - 这个函数是阻塞的
+    - 函数对文件描述符的检测是由内核完成的
+
+3. 在返回时，它会告诉进程有多少描述符要进行I/O操作
+
+```c++
+// sizeof(fd_set) = 128 bytes = 1024 bits
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+    - 参数：
+        - nfds：委托内核检测的最大文件描述符的值 + 1
+        - readfds：要检测的文件描述符的读的集合
+            - 一般检测读操作
+            - 对应的是对方发送过来的数据，检测的是读缓冲区
+            - 是一个传入传出参数
+        - writefds：要检测的文件描述符的写的集合
+            - 委托内核检测写缓冲区是不是还可以写数据
+        - exceptfds：检测发生异常的文件描述符的集合
+        - timeout：设置的超时时间
+            struct timeval {
+                long tv_sec;
+                long tc_usec;
+            };
+            - NULL：永久阻塞
+            - tv_sec = 0 tv_usec = 0：不阻塞
+            - tv_sec > 0 tv_usec > 0：阻塞对应的时间
+    
+    - 返回值：
+        - -1：失败
+        - >0(n)：检测到集合中有n个文件描述符发生了变化
+
+
+// 将参数文件描述符fd对应的标志位设置为0
+void FD_CLR(int fd, fd_set *set);
+// 判断fd对应的标志位是0还是1
+int FD_ISSET(int fd, fd_set *set);
+// 将参数文件描述符fd对应的标志位设置为1
+void FD_SET(int fd, fd_set *set);
+// fd_set一共有1024 bits，全部初始化为0
+void FD_ZERO(fd_set* set);
+```

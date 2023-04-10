@@ -13,11 +13,20 @@ int main() {
         exit(-1);
     }
 
+    // 设置端口复用
+    int optval = 1;
+    setsockopt(lfd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval));
+
+    // 绑定ip和端口
     struct sockaddr_in soaddr;
     soaddr.sin_family = AF_INET;
     soaddr.sin_port = htons(9999);
     soaddr.sin_addr.s_addr = INADDR_ANY;
-    bind(lfd, (struct sockaddr*)&soaddr, sizeof(soaddr));
+    int ret = bind(lfd, (struct sockaddr*)&soaddr, sizeof(soaddr));
+    if (ret == -1) {
+        perror("bind");
+        exit(-1);
+    }
 
     listen(lfd, 128);
 
