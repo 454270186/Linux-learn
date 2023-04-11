@@ -183,3 +183,26 @@ void FD_SET(int fd, fd_set *set);
 // fd_set一共有1024 bits，全部初始化为0
 void FD_ZERO(fd_set* set);
 ```
+
+<br>
+
+#### poll
+```c++
+#include <poll.h>
+struct pollfd {
+    int fd; // 委托内核检测的文件描述符
+    short events; // 委托内核检测文件描述符的事件
+    short revents; // 文件描述符实际发生的事件
+};
+int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+    - 参数：
+        - fds：需要检测的文件描述符的集合
+        - nfds：第一个参数数组中最后一个有效元素的下标+1
+        - timeout：阻塞时长
+            - 0：不阻塞
+            - -1：阻塞，当检测到fd变化时再解除阻塞
+            - >0：阻塞的时长 millisecond
+    - 返回值：
+        - -1：失败
+        - >0(n)：检测到集合中有n个文件描述符发生了变化
+```
