@@ -206,3 +206,51 @@ int poll(struct pollfd *fds, nfds_t nfds, int timeout);
         - -1：失败
         - >0(n)：检测到集合中有n个文件描述符发生了变化
 ```
+
+<br>
+
+#### epoll
+```c++
+#include <sys/epoll.h>
+
+// 创建一个新的epoll实例（在内核区），包含两个比较重要的数据：
+// 1.需要检测的文件描述符的信息（红黑树储存）
+// 2.就绪列表，存放检测到数据改变的文件描述符（双向链表）
+int epoll_create(int size);
+    - 参数：
+        size：Linux 2.6.8后被忽略了，但是必须大于0
+    
+    - 返回值：
+        -1：失败
+        >0：用于操作epoll实例的文件描述符
+
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+    - 参数：
+        - epfd：epoll实例对应的文件描述符
+        - op：要进行什么操作
+            - EPOLL_CTL_ADD 添加
+            - EPOLL_CTL_MOD 修改
+            - EPOLL_CTL_DEL 删除
+        - fd：要检测的文件描述符
+        - event：检测文件描述符什么事件
+
+int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
+    - 参数： 
+        - edfd：epoll实例的fd
+        - events：传出参数，保存了发生了变化的文件描述符的信息
+        - maxevents: 第二个参数结构体数组的大小
+        - timeout：阻塞时间
+            - 0：不阻塞
+            - -1：阻塞，直到检测到fd数据发生变化，解除阻塞
+            - >0: 阻塞的时长 millisecond
+    
+    - 返回值：
+        - 成功，返回发送变化的文件描述符的个数 >0
+        - 失败，-1
+```
+
+**两种工作模式**
+
+- LT模式（水平触发）
+
+- ET模式（边沿触发） 
