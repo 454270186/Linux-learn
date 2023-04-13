@@ -254,3 +254,30 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 - LT模式（水平触发）
 
 - ET模式（边沿触发） 
+
+
+
+## UDP通信
+
+```c++
+#include <sys/types.h>
+#include <sys/socket.h>
+
+ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
+    - 参数：
+        - sockfd：通信的fd
+        - buf：要发送的数据
+        - len：发送的数据的长度
+        - flags：0
+        - dest_addr：通信的另一端的地址
+        - addrlen：地址的内存大小
+
+ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
+    - 参数：
+        - sockfd：通信的fd
+        - buf：接受的数据的数组
+        - len：数组的大小
+        - flags：0
+        - src_addr：用来保存另一端的地址信息，不需要可以指定为NULL
+        - addrlen：地址的内存大小
+```
